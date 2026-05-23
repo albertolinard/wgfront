@@ -53,10 +53,11 @@
     display: grid;
     gap: 1rem;
     grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    overflow-x: auto;
   }
 
-  .peers__grid--cols-2 { grid-template-columns: repeat(2, 1fr); }
-  .peers__grid--cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .peers__grid--cols-2 { grid-template-columns: repeat(2, 420px); }
+  .peers__grid--cols-3 { grid-template-columns: repeat(3, 420px); }
 
   .peers__empty {
     text-align: center;
