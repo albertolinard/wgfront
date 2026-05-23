@@ -5,6 +5,8 @@
   <button class="btn btn--accent" id="regen-keys-btn">[REGERAR CHAVES]</button>
   <button class="btn btn--accent" id="download-all-btn">[BAIXAR TUDO .zip]</button>
   <button class="btn" id="copy-all-btn">[COPIAR TUDO]</button>
+  <button class="btn" id="load-zip-btn">[CARREGAR .zip]</button>
+  <input type="file" id="load-zip-input" accept=".zip,application/zip" hidden />
 </section>
 
 <style>
@@ -19,18 +21,20 @@
 </style>
 
 <script>
-  import { subscribe, getState, regenerateAllKeys } from '../lib/store';
+  import { subscribe, getState, regenerateAllKeys, importState } from '../lib/store';
   import {
     generateAllConfigs,
     generateKeySummary,
   } from '../lib/config-generator';
   import { copyToClipboard } from '../lib/clipboard';
-  import { downloadZip } from '../lib/zip';
+  import { downloadZip, parseImportZip } from '../lib/zip';
 
   const section = document.getElementById('action-bar')!;
   const regenBtn = document.getElementById('regen-keys-btn')!;
   const dlAllBtn = document.getElementById('download-all-btn')!;
   const copyAllBtn = document.getElementById('copy-all-btn')!;
+  const loadZipBtn = document.getElementById('load-zip-btn')!;
+  const loadZipInput = document.getElementById('load-zip-input') as HTMLInputElement;
 
   regenBtn.addEventListener('click', async () => {
     regenBtn.textContent = '[GERANDO...]';
@@ -48,6 +52,7 @@
     const entries = [
       ...configs.map((c) => ({ filename: c.filename, content: c.content })),
       { filename: 'keys.txt', content: keys },
+      { filename: 'metadata.json', content: JSON.stringify(state, null, 2) },
     ];
 
     downloadZip(entries, 'wireguard-configs.zip');
@@ -60,6 +65,34 @@
     const ok = await copyToClipboard(allText);
     copyAllBtn.textContent = ok ? '[COPIADO!]' : '[ERRO]';
     setTimeout(() => (copyAllBtn.textContent = '[COPIAR TUDO]'), 1500);
+  });
+
+  loadZipBtn.addEventListener('click', () => {
+    loadZipInput.click();
+  });
+
+  loadZipInput.addEventListener('change', async () => {
+    const file = loadZipInput.files?.[0];
+    if (!file) return;
+
+    loadZipBtn.textContent = '[CARREGANDO...]';
+    loadZipBtn.setAttribute('disabled', '');
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const result = parseImportZip(buffer);
+      importState(result.network, result.peers);
+      loadZipBtn.textContent = '[CARREGADO!]';
+    } catch (err) {
+      console.error(err);
+      loadZipBtn.textContent = '[ERRO]';
+    }
+
+    setTimeout(() => {
+      loadZipBtn.removeAttribute('disabled');
+      loadZipBtn.textContent = '[CARREGAR .zip]';
+      loadZipInput.value = '';
+    }, 1500);
   });
 
   subscribe((state) => {

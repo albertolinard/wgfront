@@ -99,3 +99,12 @@ export async function regenerateAllKeys(): Promise<void> {
   state = { ...state, peers: newPeers };
   emit();
 }
+
+export function importState(network: NetworkConfig, peers: Peer[]): void {
+  state = {
+    network: { ...network },
+    peers: peers.map((p) => ({ ...p })),
+  };
+  idCounter = Math.max(0, ...peers.map((p) => parseInt(p.id, 10) || 0));
+  emit();
+}
