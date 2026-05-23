@@ -26,11 +26,24 @@
     gap: 0;
     border-bottom: 1px solid var(--border);
     overflow-x: auto;
-    scrollbar-width: none;
+    scrollbar-width: thin;
   }
 
   .preview__tabs::-webkit-scrollbar {
-    display: none;
+    height: 6px;
+  }
+
+  .preview__tabs::-webkit-scrollbar-track {
+    background: var(--bg-card);
+  }
+
+  .preview__tabs::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  .preview__tabs::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
   }
 
   .preview__content {
