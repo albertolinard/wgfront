@@ -1,0 +1,94 @@
+---
+---
+
+<section class="section" id="topology-section" hidden>
+  <h2 class="topology__title text-secondary">Topologia</h2>
+  <div class="topology__diagram" id="topology-svg-container"></div>
+</section>
+
+<style>
+  .topology__title {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1rem;
+  }
+
+  .topology__diagram {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow: hidden;
+  }
+</style>
+
+<script>
+  import { subscribe, getState } from '../lib/store';
+  import { buildDiagramLayout } from '../lib/diagram';
+  import type { DiagramNode, DiagramEdge, DiagramLayout } from '../lib/diagram';
+
+  const section = document.getElementById('topology-section')!;
+  const svgContainer = document.getElementById('topology-svg-container')!;
+
+  const NODE_W = 110;
+  const NODE_H = 68;
+
+  function esc(s: string): string {
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function renderNode(node: DiagramNode): string {
+    const isHub = node.role === 'hub';
+    const borderColor = isHub ? '#00ff9f' : '#556677';
+    const borderWidth = isHub ? 2 : 1;
+    const nameColor = isHub ? '#e0e0e0' : '#8899aa';
+    const badgeStroke = isHub ? '#00ff9f' : '#556677';
+    const badgeTextColor = isHub ? '#00ff9f' : '#556677';
+    const badgeLabel = isHub ? 'HUB' : 'SPOKE';
+    const endpointText = node.endpoint || '(no endpoint)';
+
+    return `<g class="diagram-node" data-role="${node.role}">
+  <rect x="${node.x}" y="${node.y}" width="${NODE_W}" height="${NODE_H}" rx="4" fill="#141c27" stroke="${borderColor}" stroke-width="${borderWidth}"/>
+  <text x="${node.x + NODE_W / 2}" y="${node.y + 20}" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="${nameColor}">${esc(node.name)}</text>
+  <text x="${node.x + NODE_W / 2}" y="${node.y + 36}" text-anchor="middle" font-family="monospace" font-size="9" fill="#00ff9f">${esc(node.wgIp)}</text>
+  <text x="${node.x + NODE_W / 2}" y="${node.y + 49}" text-anchor="middle" font-family="monospace" font-size="8" fill="#556677">${esc(endpointText)}</text>
+  <rect x="${node.x + 27}" y="${node.y + 55}" width="56" height="11" rx="2" fill="#0a0e14" stroke="${badgeStroke}" stroke-width="0.8"/>
+  <text x="${node.x + NODE_W / 2}" y="${node.y + 64}" text-anchor="middle" font-family="monospace" font-size="7" fill="${badgeTextColor}">${badgeLabel}</text>
+</g>`;
+  }
+
+  function renderEdge(edge: DiagramEdge, isMesh: boolean): string {
+    const dash = isMesh ? '' : ' stroke-dasharray="5,4"';
+    return `<line x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}" stroke="#1e2d3d" stroke-width="1.5"${dash}/>`;
+  }
+
+  function renderSvg(layout: DiagramLayout, isMesh: boolean): string {
+    const edges = layout.edges.map((e) => renderEdge(e, isMesh)).join('\n');
+    const nodes = layout.nodes.map(renderNode).join('\n');
+    return `<svg viewBox="0 0 ${layout.viewWidth} ${layout.viewHeight}" width="100%" xmlns="http://www.w3.org/2000/svg">
+${edges}
+${nodes}
+</svg>`;
+  }
+
+  function update(): void {
+    const { peers, network } = getState();
+
+    if (peers.length < 2) {
+      section.hidden = true;
+      return;
+    }
+
+    section.hidden = false;
+    const layout = buildDiagramLayout(peers, network);
+    const isMesh = network.topology === 'mesh';
+    svgContainer.innerHTML = renderSvg(layout, isMesh);
+  }
+
+  subscribe(update);
+  update();
+</script>
