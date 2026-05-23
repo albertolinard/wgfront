@@ -3,6 +3,7 @@
 
 <section class="section" id="topology-section" hidden>
   <h2 class="topology__title text-secondary">Topologia</h2>
+  <p class="topology__subtitle" id="topology-subtitle"></p>
   <div class="topology__diagram" id="topology-svg-container"></div>
 </section>
 
@@ -11,6 +12,14 @@
     font-size: 1rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    margin-bottom: 0.25rem;
+  }
+
+  .topology__subtitle {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
     margin-bottom: 1rem;
   }
 
@@ -30,6 +39,7 @@
 
   const section = document.getElementById('topology-section')!;
   const svgContainer = document.getElementById('topology-svg-container')!;
+  const subtitle = document.getElementById('topology-subtitle')!;
 
   const NODE_W = 110;
   const NODE_H = 68;
@@ -50,10 +60,11 @@
     const badgeTextColor = isHub ? '#00ff9f' : '#556677';
     const badgeLabel = isHub ? 'HUB' : 'SPOKE';
     const endpointText = node.endpoint || '(no endpoint)';
+    const displayName = node.name.length > 14 ? node.name.slice(0, 13) + '…' : node.name;
 
     return `<g class="diagram-node" data-role="${node.role}">
   <rect x="${node.x}" y="${node.y}" width="${NODE_W}" height="${NODE_H}" rx="4" fill="#141c27" stroke="${borderColor}" stroke-width="${borderWidth}"/>
-  <text x="${node.x + NODE_W / 2}" y="${node.y + 20}" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="${nameColor}">${esc(node.name)}</text>
+  <text x="${node.x + NODE_W / 2}" y="${node.y + 20}" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="${nameColor}">${esc(displayName)}</text>
   <text x="${node.x + NODE_W / 2}" y="${node.y + 36}" text-anchor="middle" font-family="monospace" font-size="9" fill="#00ff9f">${esc(node.wgIp)}</text>
   <text x="${node.x + NODE_W / 2}" y="${node.y + 49}" text-anchor="middle" font-family="monospace" font-size="8" fill="#556677">${esc(endpointText)}</text>
   <rect x="${node.x + 27}" y="${node.y + 55}" width="56" height="11" rx="2" fill="#0a0e14" stroke="${badgeStroke}" stroke-width="0.8"/>
@@ -84,8 +95,15 @@ ${nodes}
     }
 
     section.hidden = false;
-    const layout = buildDiagramLayout(peers, network);
     const isMesh = network.topology === 'mesh';
+    if (isMesh) {
+      subtitle.textContent = `MESH · ${peers.length} NÓS`;
+    } else {
+      const hubs = peers.filter((p) => p.role === 'hub').length;
+      const spokes = peers.filter((p) => p.role === 'spoke').length;
+      subtitle.textContent = `HUB-SPOKE · ${hubs} HUB${hubs !== 1 ? 'S' : ''} · ${spokes} SPOKE${spokes !== 1 ? 'S' : ''}`;
+    }
+    const layout = buildDiagramLayout(peers, network);
     svgContainer.innerHTML = renderSvg(layout, isMesh);
   }
 

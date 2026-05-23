@@ -48,7 +48,7 @@ function buildMeshLayout(peers: Peer[], network: NetworkConfig): DiagramLayout {
   const centers: { x: number; y: number }[] = [];
 
   const nodes: DiagramNode[] = peers.map((peer, i) => {
-    const angle = ((2 * Math.PI) / n) * i;
+    const angle = ((2 * Math.PI) / n) * i - Math.PI / 2;
     const px = cx + r * Math.cos(angle);
     const py = cy + r * Math.sin(angle);
     centers.push({ x: px, y: py });
@@ -95,7 +95,7 @@ function buildHubSpokeLayout(
     hubs.length === 1
       ? [{ id: hubs[0].id, x: cx, y: cy }]
       : hubs.map((hub, i) => {
-          const angle = ((2 * Math.PI) / hubs.length) * i;
+          const angle = ((2 * Math.PI) / hubs.length) * i - Math.PI / 2;
           const innerR = NODE_W * 0.8;
           return {
             id: hub.id,
@@ -105,7 +105,7 @@ function buildHubSpokeLayout(
         });
 
   const spokeCenters = spokes.map((spoke, i) => {
-    const angle = ((2 * Math.PI) / Math.max(spokes.length, 1)) * i;
+    const angle = ((2 * Math.PI) / Math.max(spokes.length, 1)) * i - Math.PI / 2;
     return {
       id: spoke.id,
       x: cx + r * Math.cos(angle),
