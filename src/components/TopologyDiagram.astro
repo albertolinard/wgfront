@@ -74,7 +74,10 @@
 
   function renderEdge(edge: DiagramEdge, isMesh: boolean): string {
     const dash = isMesh ? '' : ' stroke-dasharray="5,4"';
-    return `<line x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}" stroke="#1e2d3d" stroke-width="1.5"${dash}/>`;
+    const color = edge.broken ? '#7a3535' : '#1e2d3d';
+    const width = edge.broken ? '1' : '1.5';
+    const brokenDash = edge.broken ? ' stroke-dasharray="3,3"' : '';
+    return `<line x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}" stroke="${color}" stroke-width="${width}"${dash}${brokenDash}/>`;
   }
 
   function renderSvg(layout: DiagramLayout, isMesh: boolean): string {

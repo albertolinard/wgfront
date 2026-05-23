@@ -15,6 +15,7 @@ export interface DiagramEdge {
   y1: number;
   x2: number;
   y2: number;
+  broken: boolean; // true when neither endpoint has a public IP — peers can't initiate to each other
 }
 
 export interface DiagramLayout {
@@ -71,6 +72,7 @@ function buildMeshLayout(peers: Peer[], network: NetworkConfig): DiagramLayout {
         y1: centers[i].y,
         x2: centers[j].x,
         y2: centers[j].y,
+        broken: !peers[i].publicEndpointIp && !peers[j].publicEndpointIp,
       });
     }
   }
@@ -146,6 +148,7 @@ function buildHubSpokeLayout(
       y1: hc.y,
       x2: sc.x,
       y2: sc.y,
+      broken: false,
     })),
   );
 

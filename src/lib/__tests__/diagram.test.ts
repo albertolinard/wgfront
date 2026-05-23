@@ -159,4 +159,60 @@ describe('buildDiagramLayout — hub-spoke', () => {
     const layout = buildDiagramLayout(peers, HUB_SPOKE_NET);
     expect(layout.edges).toHaveLength(0);
   });
+
+  it('hub-spoke edges are never broken', () => {
+    const peers = [
+      makePeer({ id: '1', wgOctet: 1, role: 'hub', publicEndpointIp: '' }),
+      makePeer({ id: '2', wgOctet: 2, role: 'spoke', publicEndpointIp: '' }),
+      makePeer({ id: '3', wgOctet: 3, role: 'spoke', publicEndpointIp: '' }),
+    ];
+    const layout = buildDiagramLayout(peers, HUB_SPOKE_NET);
+    for (const edge of layout.edges) {
+      expect(edge.broken).toBe(false);
+    }
+  });
+});
+
+// ─── Broken edge detection ─────────────────────────────────────────────────
+
+describe('buildDiagramLayout — broken edges', () => {
+  it('edge between two no-endpoint peers is broken', () => {
+    const peers = [
+      makePeer({ id: '1', wgOctet: 1, publicEndpointIp: '' }),
+      makePeer({ id: '2', wgOctet: 2, role: 'spoke', publicEndpointIp: '' }),
+    ];
+    const layout = buildDiagramLayout(peers, NET);
+    expect(layout.edges[0].broken).toBe(true);
+  });
+
+  it('edge where one peer has endpoint is not broken', () => {
+    const peers = [
+      makePeer({ id: '1', wgOctet: 1, publicEndpointIp: '1.2.3.4' }),
+      makePeer({ id: '2', wgOctet: 2, role: 'spoke', publicEndpointIp: '' }),
+    ];
+    const layout = buildDiagramLayout(peers, NET);
+    expect(layout.edges[0].broken).toBe(false);
+  });
+
+  it('edge where both peers have endpoints is not broken', () => {
+    const peers = [
+      makePeer({ id: '1', wgOctet: 1, publicEndpointIp: '1.2.3.4' }),
+      makePeer({ id: '2', wgOctet: 2, role: 'spoke', publicEndpointIp: '5.6.7.8' }),
+    ];
+    const layout = buildDiagramLayout(peers, NET);
+    expect(layout.edges[0].broken).toBe(false);
+  });
+
+  it('only no-endpoint pairs are broken in a mixed mesh', () => {
+    const peers = [
+      makePeer({ id: '1', wgOctet: 1, publicEndpointIp: '1.2.3.4' }),      // has endpoint
+      makePeer({ id: '2', wgOctet: 2, role: 'spoke', publicEndpointIp: '' }), // no endpoint
+      makePeer({ id: '3', wgOctet: 3, role: 'spoke', publicEndpointIp: '' }), // no endpoint
+    ];
+    const layout = buildDiagramLayout(peers, NET);
+    // 3 edges: 1-2 (ok), 1-3 (ok), 2-3 (broken)
+    expect(layout.edges).toHaveLength(3);
+    const brokenEdges = layout.edges.filter((e) => e.broken);
+    expect(brokenEdges).toHaveLength(1);
+  });
 });
