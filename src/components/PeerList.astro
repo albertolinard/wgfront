@@ -3,7 +3,13 @@
 
 <section class="section" id="peer-list-section">
   <div class="peers__header">
-    <h2 class="peers__title text-secondary">Nós</h2>
+    <div class="peers__header-left">
+      <h2 class="peers__title text-secondary">Nós</h2>
+      <div class="peers__col-group" id="col-group">
+        <button class="btn btn--sm peers__col-btn" data-cols="2">[2]</button>
+        <button class="btn btn--sm peers__col-btn" data-cols="3">[3]</button>
+      </div>
+    </div>
     <button class="btn btn--accent" id="add-peer-btn">[+ ADICIONAR NÓ]</button>
   </div>
   <div class="peers__grid" id="peers-container"></div>
@@ -20,10 +26,27 @@
     margin-bottom: 1rem;
   }
 
+  .peers__header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
   .peers__title {
     font-size: 1rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+  }
+
+  .peers__col-group {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .peers__col-btn--active {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: var(--glow-sm);
   }
 
   .peers__grid {
@@ -32,6 +55,9 @@
     grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   }
 
+  .peers__grid--cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .peers__grid--cols-3 { grid-template-columns: repeat(3, 1fr); }
+
   .peers__empty {
     text-align: center;
     padding: 2rem;
@@ -39,7 +65,9 @@
   }
 
   @media (max-width: 640px) {
-    .peers__grid {
+    .peers__grid,
+    .peers__grid--cols-2,
+    .peers__grid--cols-3 {
       grid-template-columns: 1fr;
     }
   }
@@ -52,6 +80,26 @@
   const container = document.getElementById('peers-container')!;
   const emptyMsg = document.getElementById('peers-empty')!;
   const addBtn = document.getElementById('add-peer-btn')!;
+  const colGroup = document.getElementById('col-group')!;
+
+  const STORAGE_KEY = 'peers-cols';
+
+  function applyColCount(cols: string): void {
+    container.classList.remove('peers__grid--cols-2', 'peers__grid--cols-3');
+    container.classList.add(`peers__grid--cols-${cols}`);
+    colGroup.querySelectorAll<HTMLElement>('.peers__col-btn').forEach((btn) => {
+      btn.classList.toggle('peers__col-btn--active', btn.dataset.cols === cols);
+    });
+    document.body.dataset.cols = cols;
+    localStorage.setItem(STORAGE_KEY, cols);
+  }
+
+  applyColCount(localStorage.getItem(STORAGE_KEY) ?? '2');
+
+  colGroup.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('.peers__col-btn');
+    if (btn?.dataset.cols) applyColCount(btn.dataset.cols);
+  });
 
   addBtn.addEventListener('click', async () => {
     addBtn.setAttribute('disabled', '');
