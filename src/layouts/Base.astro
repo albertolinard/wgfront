@@ -59,6 +59,9 @@ const canonicalUrl = Astro.url.href;
     />
   </head>
   <body>
+    <script is:inline>
+      document.body.dataset.cols = localStorage.getItem('peers-cols') ?? '2';
+    </script>
     <slot />
   </body>
 </html>
