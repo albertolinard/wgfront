@@ -5,20 +5,22 @@
   <h2 class="preview__title text-secondary">Preview da Configuração</h2>
   <div class="preview__tabs" id="preview-tabs"></div>
   <div class="preview__content" id="preview-content">
-    <div class="preview__actions">
-      <button class="btn btn--sm" id="copy-current-btn">[COPIAR]</button>
-      <button class="btn btn--sm" id="download-current-btn">[BAIXAR]</button>
-    </div>
     <div class="preview__warning" id="preview-warning" hidden>
       <span class="preview__warning-icon">!</span>
       <div class="preview__warning-body">
-        <strong>IP forwarding via PostUp</strong> — enabled on start, not disabled on shutdown (safe for cloudflared/DNS).
-        To persist across reboots, add to <code>/etc/sysctl.d/99-wg.conf</code>:<br>
+        <strong>IP forwarding is enabled via PostUp</strong> and not reverted on shutdown — this may affect your network when WireGuard stops.
+        To persist it safely, add to <code>/etc/sysctl.d/99-wg.conf</code>:<br>
         <code>net.ipv4.ip_forward = 1</code> &nbsp; <code>net.ipv6.conf.all.forwarding = 1</code><br>
         Then run: <code>sudo sysctl --system</code>
       </div>
     </div>
-    <pre class="preview__code" id="preview-code"></pre>
+    <div class="preview__code-wrap">
+      <div class="preview__actions">
+        <button class="btn btn--sm" id="copy-current-btn">[COPIAR]</button>
+        <button class="btn btn--sm" id="download-current-btn">[BAIXAR]</button>
+      </div>
+      <pre class="preview__code" id="preview-code"></pre>
+    </div>
   </div>
 </section>
 
@@ -60,6 +62,9 @@
     border: 1px solid var(--border);
     border-top: none;
     border-radius: 0 0 var(--radius) var(--radius);
+  }
+
+  .preview__code-wrap {
     position: relative;
   }
 
