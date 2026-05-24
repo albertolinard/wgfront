@@ -82,8 +82,12 @@ export function generateConfig(
     lines.push('DNS = 1.1.1.1, 1.0.0.1, 2606:4700:4700::1111, 2606:4700:4700::1001');
   }
 
-  // Hubs in hub-spoke must forward packets between spokes; natGateway also adds masquerade for internet.
-  const needsForwarding = self.natGateway || (network.topology === 'hub-spoke' && self.role === 'hub');
+  // Only the primary hub forwards inter-spoke packets; secondary hubs relay only their own WG IP.
+  // natGateway also adds masquerade for internet traffic.
+  const hubs = allPeers.filter((p) => p.role === 'hub');
+  const primaryHub = hubs.find((h) => h.publicEndpointIp) ?? hubs[0];
+  const isPrimaryHub = network.topology === 'hub-spoke' && self.role === 'hub' && primaryHub?.id === self.id;
+  const needsForwarding = self.natGateway || isPrimaryHub;
   const needsMasquerade = self.natGateway;
 
   if (needsForwarding) {
@@ -128,10 +132,6 @@ export function generateConfig(
     : null;
 
   // In multi-hub setups only ONE hub gets the subnet route to avoid AllowedIPs conflicts.
-  // Prefer a hub with a public endpoint; fall back to the first hub.
-  const hubs = visiblePeers.filter((p) => p.role === 'hub');
-  const primaryHub =
-    hubs.find((h) => h.publicEndpointIp) ?? hubs[0];
 
   for (const peer of visiblePeers) {
     const useFullTunnel = peer.id === fullTunnelTarget;

@@ -316,6 +316,30 @@ describe('hub forwarding in hub-spoke', () => {
     expect(config).not.toContain('PostUp');
     expect(config).not.toContain('PostDown');
   });
+
+  it('secondary hub does not get forwarding rules', () => {
+    const hub1 = makePeer({ id: '1', role: 'hub', wgOctet: 1, publicEndpointIp: '1.2.3.4', natGateway: false });
+    const hub2 = makePeer({ id: '2', role: 'hub', wgOctet: 2, publicEndpointIp: '5.6.7.8', natGateway: false });
+    const spoke = makePeer({ id: '3', role: 'spoke', wgOctet: 3 });
+
+    // hub2 is secondary (hub1 has publicEndpointIp and comes first)
+    const config = generateConfig(hub2, [hub1, hub2, spoke], hubSpokeNetwork);
+
+    expect(config).not.toContain('PostUp');
+    expect(config).not.toContain('PostDown');
+  });
+
+  it('primary hub gets forwarding rules, secondary does not', () => {
+    const hub1 = makePeer({ id: '1', role: 'hub', wgOctet: 1, publicEndpointIp: '1.2.3.4', natGateway: false });
+    const hub2 = makePeer({ id: '2', role: 'hub', wgOctet: 2, publicEndpointIp: '5.6.7.8', natGateway: false });
+    const spoke = makePeer({ id: '3', role: 'spoke', wgOctet: 3 });
+
+    const primary = generateConfig(hub1, [hub1, hub2, spoke], hubSpokeNetwork);
+    const secondary = generateConfig(hub2, [hub1, hub2, spoke], hubSpokeNetwork);
+
+    expect(primary).toContain('PostUp = sysctl -w net.ipv4.ip_forward=1');
+    expect(secondary).not.toContain('PostUp');
+  });
 });
 
 describe('generateKeySummary', () => {
