@@ -29,6 +29,17 @@ const NODE_W = 110;
 const NODE_H = 68;
 const PAD = 40;
 
+// Returns false for empty strings, RFC1918 private IPs, and loopback — none
+// of these are reachable from the internet, so they don't count as endpoints.
+export function isPublicEndpoint(endpoint: string): boolean {
+  if (!endpoint) return false;
+  if (/^10\./.test(endpoint)) return false;
+  if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(endpoint)) return false;
+  if (/^192\.168\./.test(endpoint)) return false;
+  if (/^127\./.test(endpoint)) return false;
+  return true;
+}
+
 export function buildDiagramLayout(
   peers: Peer[],
   network: NetworkConfig,
@@ -72,7 +83,7 @@ function buildMeshLayout(peers: Peer[], network: NetworkConfig): DiagramLayout {
         y1: centers[i].y,
         x2: centers[j].x,
         y2: centers[j].y,
-        broken: !peers[i].publicEndpointIp && !peers[j].publicEndpointIp,
+        broken: !isPublicEndpoint(peers[i].publicEndpointIp) && !isPublicEndpoint(peers[j].publicEndpointIp),
       });
     }
   }

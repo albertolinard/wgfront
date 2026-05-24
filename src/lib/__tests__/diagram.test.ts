@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDiagramLayout } from '../diagram';
+import { buildDiagramLayout, isPublicEndpoint } from '../diagram';
 import type { Peer, NetworkConfig } from '../types';
 
 function makePeer(overrides: Partial<Peer> = {}): Peer {
@@ -205,9 +205,9 @@ describe('buildDiagramLayout — broken edges', () => {
 
   it('only no-endpoint pairs are broken in a mixed mesh', () => {
     const peers = [
-      makePeer({ id: '1', wgOctet: 1, publicEndpointIp: '1.2.3.4' }),      // has endpoint
-      makePeer({ id: '2', wgOctet: 2, role: 'spoke', publicEndpointIp: '' }), // no endpoint
-      makePeer({ id: '3', wgOctet: 3, role: 'spoke', publicEndpointIp: '' }), // no endpoint
+      makePeer({ id: '1', wgOctet: 1, publicEndpointIp: '1.2.3.4' }),        // public
+      makePeer({ id: '2', wgOctet: 2, role: 'spoke', publicEndpointIp: '' }), // none
+      makePeer({ id: '3', wgOctet: 3, role: 'spoke', publicEndpointIp: '' }), // none
     ];
     const layout = buildDiagramLayout(peers, NET);
     // 3 edges: 1-2 (ok), 1-3 (ok), 2-3 (broken)
@@ -215,4 +215,39 @@ describe('buildDiagramLayout — broken edges', () => {
     const brokenEdges = layout.edges.filter((e) => e.broken);
     expect(brokenEdges).toHaveLength(1);
   });
+
+  it('RFC1918 private IP is treated as no public endpoint', () => {
+    const peers = [
+      makePeer({ id: '1', wgOctet: 1, publicEndpointIp: '192.168.0.156' }), // LAN IP
+      makePeer({ id: '2', wgOctet: 2, role: 'spoke', publicEndpointIp: '192.168.0.26' }), // LAN IP
+    ];
+    const layout = buildDiagramLayout(peers, NET);
+    expect(layout.edges[0].broken).toBe(true);
+  });
+
+  it('private IP + public IP pair is not broken', () => {
+    const peers = [
+      makePeer({ id: '1', wgOctet: 1, publicEndpointIp: '150.230.69.217' }), // public
+      makePeer({ id: '2', wgOctet: 2, role: 'spoke', publicEndpointIp: '192.168.0.26' }), // LAN
+    ];
+    const layout = buildDiagramLayout(peers, NET);
+    expect(layout.edges[0].broken).toBe(false);
+  });
+});
+
+// ─── isPublicEndpoint ─────────────────────────────────────────────────────────
+
+describe('isPublicEndpoint', () => {
+  it('returns false for empty string', () => expect(isPublicEndpoint('')).toBe(false));
+  it('returns false for 10.x.x.x', () => expect(isPublicEndpoint('10.0.0.1')).toBe(false));
+  it('returns false for 192.168.x.x', () => expect(isPublicEndpoint('192.168.1.50')).toBe(false));
+  it('returns false for 172.16-31.x.x', () => {
+    expect(isPublicEndpoint('172.16.0.1')).toBe(false);
+    expect(isPublicEndpoint('172.31.255.255')).toBe(false);
+  });
+  it('returns false for 127.x.x.x', () => expect(isPublicEndpoint('127.0.0.1')).toBe(false));
+  it('returns true for public IP', () => expect(isPublicEndpoint('150.230.69.217')).toBe(true));
+  it('returns true for DDNS hostname', () => expect(isPublicEndpoint('wg.example.com')).toBe(true));
+  it('returns true for 172.15.x.x (not RFC1918)', () => expect(isPublicEndpoint('172.15.0.1')).toBe(true));
+  it('returns true for 172.32.x.x (not RFC1918)', () => expect(isPublicEndpoint('172.32.0.1')).toBe(true));
 });

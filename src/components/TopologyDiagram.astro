@@ -4,6 +4,10 @@
 <section class="section" id="topology-section" hidden>
   <h2 class="topology__title text-secondary">Topologia</h2>
   <p class="topology__subtitle" id="topology-subtitle"></p>
+  <div class="topology__fix" id="topology-fix" hidden>
+    <span class="topology__fix-msg" id="topology-fix-msg"></span>
+    <button class="btn btn--sm btn--accent" id="topology-fix-btn">[CORRIGIR]</button>
+  </div>
   <div class="topology__diagram" id="topology-svg-container"></div>
 </section>
 
@@ -20,7 +24,25 @@
     font-size: 0.75rem;
     color: var(--text-muted);
     letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+  }
+
+  .topology__fix {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     margin-bottom: 1rem;
+    padding: 0.5rem 0.75rem;
+    background: color-mix(in srgb, #7a3535 12%, transparent);
+    border: 1px solid #7a3535;
+    border-radius: var(--radius);
+  }
+
+  .topology__fix-msg {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: #c47777;
+    flex: 1;
   }
 
   .topology__diagram {
@@ -33,13 +55,16 @@
 </style>
 
 <script>
-  import { subscribe, getState } from '../lib/store';
-  import { buildDiagramLayout } from '../lib/diagram';
+  import { subscribe, getState, importState } from '../lib/store';
+  import { buildDiagramLayout, isPublicEndpoint } from '../lib/diagram';
   import type { DiagramNode, DiagramEdge, DiagramLayout } from '../lib/diagram';
 
   const section = document.getElementById('topology-section')!;
   const svgContainer = document.getElementById('topology-svg-container')!;
   const subtitle = document.getElementById('topology-subtitle')!;
+  const fixBar = document.getElementById('topology-fix')!;
+  const fixMsg = document.getElementById('topology-fix-msg')!;
+  const fixBtn = document.getElementById('topology-fix-btn')!;
 
   const NODE_W = 110;
   const NODE_H = 68;
@@ -89,6 +114,23 @@ ${nodes}
 </svg>`;
   }
 
+  function bestRelay(peers: ReturnType<typeof getState>['peers']): typeof peers[0] | null {
+    const candidates = peers.filter((p) => isPublicEndpoint(p.publicEndpointIp));
+    if (candidates.length === 0) return null;
+    // prefer an existing hub; otherwise take first candidate
+    return candidates.find((p) => p.role === 'hub') ?? candidates[0];
+  }
+
+  fixBtn.addEventListener('click', () => {
+    const { peers, network } = getState();
+    const relay = bestRelay(peers);
+    if (!relay) return;
+    importState(
+      { ...network, topology: 'hub-spoke' },
+      peers.map((p) => ({ ...p, role: p.id === relay.id ? 'hub' : 'spoke' })),
+    );
+  });
+
   function update(): void {
     const { peers, network } = getState();
 
@@ -99,6 +141,7 @@ ${nodes}
 
     section.hidden = false;
     const isMesh = network.topology === 'mesh';
+
     if (isMesh) {
       subtitle.textContent = `MESH · ${peers.length} NÓS`;
     } else {
@@ -106,7 +149,18 @@ ${nodes}
       const spokes = peers.filter((p) => p.role === 'spoke').length;
       subtitle.textContent = `HUB-SPOKE · ${hubs} HUB${hubs !== 1 ? 'S' : ''} · ${spokes} SPOKE${spokes !== 1 ? 'S' : ''}`;
     }
+
     const layout = buildDiagramLayout(peers, network);
+    const brokenCount = layout.edges.filter((e) => e.broken).length;
+    const relay = isMesh ? bestRelay(peers) : null;
+
+    if (isMesh && brokenCount > 0 && relay) {
+      fixMsg.textContent = `${brokenCount} par${brokenCount !== 1 ? 'es' : ''} inalcançável${brokenCount !== 1 ? 'eis' : ''} — converter para hub-spoke via ${relay.name}`;
+      fixBar.hidden = false;
+    } else {
+      fixBar.hidden = true;
+    }
+
     svgContainer.innerHTML = renderSvg(layout, isMesh);
   }
 
