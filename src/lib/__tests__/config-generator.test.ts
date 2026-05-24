@@ -263,6 +263,61 @@ describe('NAT gateway', () => {
   });
 });
 
+describe('hub forwarding in hub-spoke', () => {
+  const hubSpokeNetwork: NetworkConfig = { ...network, topology: 'hub-spoke' };
+
+  it('hub gets ip_forward and FORWARD rules', () => {
+    const hub = makePeer({ id: '1', role: 'hub', wgOctet: 1, natGateway: false });
+    const spoke = makePeer({ id: '2', role: 'spoke', wgOctet: 2 });
+
+    const config = generateConfig(hub, [hub, spoke], hubSpokeNetwork);
+
+    expect(config).toContain('PostUp = sysctl -w net.ipv4.ip_forward=1');
+    expect(config).toContain('PostUp = iptables -A FORWARD -i %i -j ACCEPT');
+    expect(config).toContain('PostDown = sysctl -w net.ipv4.ip_forward=0');
+  });
+
+  it('hub does not get masquerade rules unless natGateway is true', () => {
+    const hub = makePeer({ id: '1', role: 'hub', wgOctet: 1, natGateway: false });
+    const spoke = makePeer({ id: '2', role: 'spoke', wgOctet: 2 });
+
+    const config = generateConfig(hub, [hub, spoke], hubSpokeNetwork);
+
+    expect(config).not.toContain('MASQUERADE');
+  });
+
+  it('hub with natGateway gets both forwarding and masquerade rules', () => {
+    const hub = makePeer({ id: '1', role: 'hub', wgOctet: 1, natGateway: true, natInterface: 'eth0' });
+    const spoke = makePeer({ id: '2', role: 'spoke', wgOctet: 2 });
+
+    const config = generateConfig(hub, [hub, spoke], hubSpokeNetwork);
+
+    expect(config).toContain('PostUp = sysctl -w net.ipv4.ip_forward=1');
+    expect(config).toContain('PostUp = iptables -A FORWARD -i %i -j ACCEPT');
+    expect(config).toContain('PostUp = iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE');
+  });
+
+  it('spoke does not get forwarding rules', () => {
+    const hub = makePeer({ id: '1', role: 'hub', wgOctet: 1 });
+    const spoke = makePeer({ id: '2', role: 'spoke', wgOctet: 2, natGateway: false });
+
+    const config = generateConfig(spoke, [hub, spoke], hubSpokeNetwork);
+
+    expect(config).not.toContain('PostUp');
+    expect(config).not.toContain('PostDown');
+  });
+
+  it('hub in mesh topology does not get forwarding rules', () => {
+    const hub = makePeer({ id: '1', role: 'hub', wgOctet: 1, natGateway: false });
+    const spoke = makePeer({ id: '2', role: 'spoke', wgOctet: 2 });
+
+    const config = generateConfig(hub, [hub, spoke], network);
+
+    expect(config).not.toContain('PostUp');
+    expect(config).not.toContain('PostDown');
+  });
+});
+
 describe('generateKeySummary', () => {
   it('lists all peers with keys and IPs', () => {
     const peer = makePeer();
