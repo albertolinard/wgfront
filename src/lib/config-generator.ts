@@ -119,11 +119,18 @@ export function generateConfig(
     ? visiblePeers.find((p) => p.natGateway)?.id ?? visiblePeers[0]?.id
     : null;
 
+  // In multi-hub setups only ONE hub gets the subnet route to avoid AllowedIPs conflicts.
+  // Prefer a hub with a public endpoint; fall back to the first hub.
+  const hubs = visiblePeers.filter((p) => p.role === 'hub');
+  const primaryHub =
+    hubs.find((h) => h.publicEndpointIp) ?? hubs[0];
+
   for (const peer of visiblePeers) {
     const useFullTunnel = peer.id === fullTunnelTarget;
 
-    // Spokes route the entire WG subnet through hubs
-    const useSubnetRoute = isSpoke && peer.role === 'hub' && !useFullTunnel;
+    // Only the primary hub carries the whole subnet — other hubs get their specific IP only
+    const useSubnetRoute =
+      isSpoke && peer.role === 'hub' && peer.id === primaryHub?.id && !useFullTunnel;
 
     lines.push(buildPeerBlock(peer, network, { useFullTunnel, useSubnetRoute }));
   }

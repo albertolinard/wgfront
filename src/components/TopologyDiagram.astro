@@ -114,20 +114,18 @@ ${nodes}
 </svg>`;
   }
 
-  function bestRelay(peers: ReturnType<typeof getState>['peers']): typeof peers[0] | null {
-    const candidates = peers.filter((p) => isPublicEndpoint(p.publicEndpointIp));
-    if (candidates.length === 0) return null;
-    // prefer an existing hub; otherwise take first candidate
-    return candidates.find((p) => p.role === 'hub') ?? candidates[0];
+  function publicEndpointPeers(peers: ReturnType<typeof getState>['peers']): typeof peers {
+    return peers.filter((p) => isPublicEndpoint(p.publicEndpointIp));
   }
 
   fixBtn.addEventListener('click', () => {
     const { peers, network } = getState();
-    const relay = bestRelay(peers);
-    if (!relay) return;
+    const relays = publicEndpointPeers(peers);
+    if (relays.length === 0) return;
+    const relayIds = new Set(relays.map((p) => p.id));
     importState(
       { ...network, topology: 'hub-spoke' },
-      peers.map((p) => ({ ...p, role: p.id === relay.id ? 'hub' : 'spoke' })),
+      peers.map((p) => ({ ...p, role: relayIds.has(p.id) ? 'hub' : 'spoke' })),
     );
   });
 
@@ -152,10 +150,11 @@ ${nodes}
 
     const layout = buildDiagramLayout(peers, network);
     const brokenCount = layout.edges.filter((e) => e.broken).length;
-    const relay = isMesh ? bestRelay(peers) : null;
+    const relays = isMesh ? publicEndpointPeers(peers) : [];
 
-    if (isMesh && brokenCount > 0 && relay) {
-      fixMsg.textContent = `${brokenCount} par${brokenCount !== 1 ? 'es' : ''} inalcançável${brokenCount !== 1 ? 'eis' : ''} — converter para hub-spoke via ${relay.name}`;
+    if (isMesh && brokenCount > 0 && relays.length > 0) {
+      const hubNames = relays.map((p) => p.name).join(', ');
+      fixMsg.textContent = `${brokenCount} par${brokenCount !== 1 ? 'es' : ''} inalcançável${brokenCount !== 1 ? 'eis' : ''} — converter para hub-spoke com ${relays.length} hub${relays.length !== 1 ? 's' : ''}: ${hubNames}`;
       fixBar.hidden = false;
     } else {
       fixBar.hidden = true;
