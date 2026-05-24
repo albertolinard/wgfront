@@ -9,6 +9,15 @@
       <button class="btn btn--sm" id="copy-current-btn">[COPIAR]</button>
       <button class="btn btn--sm" id="download-current-btn">[BAIXAR]</button>
     </div>
+    <div class="preview__warning" id="preview-warning" hidden>
+      <span class="preview__warning-icon">!</span>
+      <div class="preview__warning-body">
+        <strong>IP forwarding via PostUp</strong> — enabled on start, not disabled on shutdown (safe for cloudflared/DNS).
+        To persist across reboots, add to <code>/etc/sysctl.d/99-wg.conf</code>:<br>
+        <code>net.ipv4.ip_forward = 1</code> &nbsp; <code>net.ipv6.conf.all.forwarding = 1</code><br>
+        Then run: <code>sudo sysctl --system</code>
+      </div>
+    </div>
     <pre class="preview__code" id="preview-code"></pre>
   </div>
 </section>
@@ -61,6 +70,45 @@
     display: flex;
     gap: 0.375rem;
     z-index: 1;
+  }
+
+  .preview__warning {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #cc7700;
+    background: rgba(204, 119, 0, 0.08);
+    color: #ffaa33;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .preview__warning[hidden] {
+    display: none;
+  }
+
+  .preview__warning-icon {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1px solid #ffaa33;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    margin-top: 0.125rem;
+  }
+
+  .preview__warning-body code {
+    background: rgba(255, 170, 51, 0.12);
+    border: 1px solid rgba(255, 170, 51, 0.25);
+    border-radius: 3px;
+    padding: 0 0.25rem;
+    font-size: 0.8125rem;
+    color: #ffc966;
   }
 
   .preview__code {
@@ -127,6 +175,7 @@
   const codeEl = document.getElementById('preview-code')!;
   const copyBtn = document.getElementById('copy-current-btn')!;
   const dlBtn = document.getElementById('download-current-btn')!;
+  const warningEl = document.getElementById('preview-warning')!;
 
   let currentConfigs: GeneratedConfig[] = [];
   let keySummary = '';
@@ -195,6 +244,7 @@
     }
 
     codeEl.innerHTML = highlightConfig(content);
+    warningEl.hidden = !content.includes('PostUp = sysctl -w net.ipv4.ip_forward=1');
 
     copyBtn.onclick = async () => {
       const ok = await copyToClipboard(content);

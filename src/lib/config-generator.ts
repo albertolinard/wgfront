@@ -116,8 +116,6 @@ export function generateConfig(
       lines.push(`PostDown = iptables -t nat -D POSTROUTING -o ${iface} -j MASQUERADE`);
       lines.push(`PostDown = ip6tables -t nat -D POSTROUTING -o ${iface} -j MASQUERADE`);
     }
-    lines.push('PostDown = sysctl -w net.ipv4.ip_forward=0');
-    lines.push('PostDown = sysctl -w net.ipv6.conf.all.forwarding=0');
   }
 
   lines.push('');

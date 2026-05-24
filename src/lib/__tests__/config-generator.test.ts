@@ -240,7 +240,7 @@ describe('NAT gateway', () => {
     expect(config).toContain('PostUp = iptables -t nat -A POSTROUTING -o ens3 -j MASQUERADE');
     expect(config).toContain('PostUp = ip6tables -t nat -A POSTROUTING -o ens3 -j MASQUERADE');
     expect(config).toContain('PostDown = iptables -t nat -D POSTROUTING -o ens3 -j MASQUERADE');
-    expect(config).toContain('PostDown = sysctl -w net.ipv4.ip_forward=0');
+    expect(config).not.toContain('PostDown = sysctl -w net.ipv4.ip_forward=0');
   });
 
   it('does not add NAT rules when natGateway is false', () => {
@@ -274,7 +274,7 @@ describe('hub forwarding in hub-spoke', () => {
 
     expect(config).toContain('PostUp = sysctl -w net.ipv4.ip_forward=1');
     expect(config).toContain('PostUp = iptables -A FORWARD -i %i -j ACCEPT');
-    expect(config).toContain('PostDown = sysctl -w net.ipv4.ip_forward=0');
+    expect(config).not.toContain('PostDown = sysctl -w net.ipv4.ip_forward=0');
   });
 
   it('hub does not get masquerade rules unless natGateway is true', () => {
